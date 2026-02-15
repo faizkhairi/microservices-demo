@@ -1,19 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import Redis from 'ioredis';
 
 @Injectable()
 export class TaskQueueService {
   private taskQueue: Queue;
 
   constructor() {
-    const connection = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      maxRetriesPerRequest: null,
+    this.taskQueue = new Queue('task', {
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        maxRetriesPerRequest: null,
+      },
     });
-
-    this.taskQueue = new Queue('task', { connection });
   }
 
   /**
