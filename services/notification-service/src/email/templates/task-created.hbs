@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Task Created</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f6f9fc; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 48px 32px; border-bottom: 1px solid #eaeaea;">
+              <h2 style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 600;">📋 Microservices Demo</h2>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 48px;">
+              <h1 style="margin: 0 0 16px; color: #0f172a; font-size: 28px; font-weight: 700;">New Task Created!</h1>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                Hi {{userName}},
+              </p>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                You've successfully created a new task:
+              </p>
+              <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 16px 20px; margin: 0 0 32px; border-radius: 4px;">
+                <p style="margin: 0; color: #1e293b; font-size: 18px; font-weight: 600;">
+                  {{taskTitle}}
+                </p>
+              </div>
+              <p style="margin: 0 0 32px; color: #475569; font-size: 16px; line-height: 1.6;">
+                Your task has been added to your dashboard. Start working on it whenever you're ready!
+              </p>
+              <a href="http://localhost:3000/dashboard" style="display: inline-block; padding: 12px 32px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                View Dashboard
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 32px 48px 40px; text-align: center; border-top: 1px solid #eaeaea;">
+              <p style="margin: 0; color: #94a3b8; font-size: 14px;">
+                © {{year}} Microservices Demo. Built by Faiz Khairi.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
