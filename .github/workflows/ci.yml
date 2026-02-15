@@ -16,12 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/auth-service/package-lock.json
 
       - name: Install dependencies
         working-directory: services/auth-service
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma Client
         working-directory: services/auth-service
@@ -40,12 +38,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/user-service/package-lock.json
 
       - name: Install dependencies
         working-directory: services/user-service
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma Client
         working-directory: services/user-service
@@ -64,12 +60,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/task-service/package-lock.json
 
       - name: Install dependencies
         working-directory: services/task-service
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma Client
         working-directory: services/task-service
@@ -88,12 +82,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/notification-service/package-lock.json
 
       - name: Install dependencies
         working-directory: services/notification-service
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma Client
         working-directory: services/notification-service
@@ -112,12 +104,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/queue-worker/package-lock.json
 
       - name: Install dependencies
         working-directory: services/queue-worker
-        run: npm ci
+        run: npm install
 
       - name: Build
         working-directory: services/queue-worker
