@@ -644,7 +644,7 @@ microservices-demo/
 | **Backend** | NestJS | Enterprise-grade Node.js framework, TypeScript-first, modular architecture |
 | **Database** | PostgreSQL 16 | Production-grade relational DB, one per service (microservices pattern) |
 | **ORM** | Prisma | Type-safe, auto-migrations, consistent with boilerplates |
-| **Message Queue** | BullMQ + Redis | Industry-standard job queue for Node.js, used in NAS project |
+| **Message Queue** | BullMQ + Redis | Industry-standard job queue for Node.js, used in production projects |
 | **Auth** | JWT (Passport) | Stateless authentication, secure inter-service communication |
 | **Email** | Nodemailer + Mailpit | SMTP-agnostic, Mailpit for dev testing (same as boilerplates) |
 | **UI** | Shadcn-vue + Tailwind | Consistent with boilerplates, production-ready components |
@@ -841,8 +841,8 @@ This demo showcases:
 - ✅ Production-ready patterns (error handling, logging, health checks)
 - ✅ CI/CD pipeline (GitHub Actions)
 
-**Comparison to NAS work:**
-- NAS: 10 services, 9 external integrations
+**Comparison to production work:**
+- Production: 7 services, 9 external integrations
 - Demo: 7 services, internal-only (no external dependencies)
 - Both: Message queue (BullMQ), multi-DB, Docker, CI/CD on AWS
 
