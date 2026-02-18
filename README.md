@@ -314,7 +314,7 @@ MIT License — See [LICENSE](./LICENSE) for details.
 **Faiz Khairi**
 - GitHub: [@faizkhairi](https://github.com/faizkhairi)
 - LinkedIn: [linkedin.com/in/faizkhairi](https://www.linkedin.com/in/faizkhairi/)
-- Website: [faizkhairi.my](https://faizkhairi.my)
+- Website: [faizkhairi.github.io](https://faizkhairi.github.io)
 
 ---
 
