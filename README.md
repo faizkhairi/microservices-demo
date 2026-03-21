@@ -1,5 +1,7 @@
 # Microservices Demo
 
+![CI](https://github.com/faizkhairi/microservices-demo/actions/workflows/ci.yml/badge.svg)
+
 **Production-grade microservices platform** demonstrating enterprise architecture patterns with **Nuxt 4 + NestJS**.
 
 Built by [Faiz Khairi](https://github.com/faizkhairi) to showcase scalable system design, message-driven architecture, and modern DevOps practices.
