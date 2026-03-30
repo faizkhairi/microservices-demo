@@ -107,6 +107,26 @@ services:
   # BACKEND SERVICES
   # ============================================
 
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      GATEWAY_PORT: 4000
+      AUTH_SERVICE_URL: http://auth-service:4001
+      USER_SERVICE_URL: http://user-service:4002
+      TASK_SERVICE_URL: http://task-service:4003
+      NOTIFICATION_SERVICE_URL: http://notification-service:4004
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - auth-service
+      - user-service
+      - task-service
+      - notification-service
+
   auth-service:
     build:
       context: ./services/auth-service
