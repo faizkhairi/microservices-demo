@@ -136,26 +136,26 @@ npm run dev  # Runs on port 3000
 
 ### Database Migrations
 
+**Docker Compose:** migrations run automatically on container start (`prisma migrate deploy` in each service Dockerfile). A fresh `docker compose up --build` applies all schemas with no manual steps.
+
+For **local development** (services run on host, databases in Docker):
+
 ```bash
-# Auth Service migrations
-cd services/auth-service
-npx prisma migrate dev --name init
-npx prisma generate
+# Auth Service
+cd services/auth-service && npm install
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/auth_db" npx prisma migrate dev
 
-# User Service migrations
-cd services/user-service
-npx prisma migrate dev --name init
-npx prisma generate
+# User Service
+cd services/user-service && npm install
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/user_db" npx prisma migrate dev
 
-# Task Service migrations
-cd services/task-service
-npx prisma migrate dev --name init
-npx prisma generate
+# Task Service
+cd services/task-service && npm install
+DATABASE_URL="postgresql://postgres:postgres@localhost:5434/task_db" npx prisma migrate dev
 
-# Notification Service migrations
-cd services/notification-service
-npx prisma migrate dev --name init
-npx prisma generate
+# Notification Service
+cd services/notification-service && npm install
+DATABASE_URL="postgresql://postgres:postgres@localhost:5435/notification_db" npx prisma migrate dev
 ```
 
 ---

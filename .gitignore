@@ -29,7 +29,6 @@ build/
 Thumbs.db
 
 # Prisma
-services/*/prisma/migrations/
 *.db
 *.db-journal
 
