@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { ClientKafka, Transport } from '@nestjs/microservices';
+import { ClientKafka } from '@nestjs/microservices';
 
 @Injectable()
 export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
@@ -8,15 +8,12 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.client = new ClientKafka({
-      transport: Transport.KAFKA,
-      options: {
-        client: {
-          clientId: 'task-service-producer',
-          brokers: [(process.env.KAFKA_BROKERS || 'localhost:9092')],
-        },
-        producer: {
-          allowAutoTopicCreation: true,
-        },
+      client: {
+        clientId: 'task-service-producer',
+        brokers: [(process.env.KAFKA_BROKERS || 'localhost:9092')],
+      },
+      producer: {
+        allowAutoTopicCreation: true,
       },
     });
 
