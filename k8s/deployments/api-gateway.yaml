@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: microservices-demo
+  labels:
+    app: api-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: microservices-demo/api-gateway:latest
+          ports:
+            - containerPort: 4000
+          env:
+            - name: GATEWAY_PORT
+              value: "4000"
+            - name: AUTH_SERVICE_URL
+              value: "http://auth-service:4001"
+            - name: USER_SERVICE_URL
+              value: "http://user-service:4002"
+            - name: TASK_SERVICE_URL
+              value: "http://task-service:4003"
+            - name: NOTIFICATION_SERVICE_URL
+              value: "http://notification-service:4004"
+            - name: SEARCH_SERVICE_URL
+              value: "http://search-service:4005"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET
+          envFrom:
+            - configMapRef:
+                name: app-config
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

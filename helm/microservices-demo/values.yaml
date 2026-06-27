@@ -1,0 +1,59 @@
+replicaCount: 1
+
+image:
+  registry: microservices-demo
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+services:
+  apiGateway:
+    name: api-gateway
+    port: 4000
+    replicas: 2
+  authService:
+    name: auth-service
+    port: 4001
+    replicas: 2
+  userService:
+    name: user-service
+    port: 4002
+    replicas: 2
+  taskService:
+    name: task-service
+    port: 4003
+    replicas: 2
+  notificationService:
+    name: notification-service
+    port: 4004
+    replicas: 1
+  searchService:
+    name: search-service
+    port: 4005
+    replicas: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  host: microservices-demo.local
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  cpuThreshold: 70
+  memoryThreshold: 80
+
+config:
+  jwtExpiresIn: "15m"
+  refreshTokenExpiresIn: "7d"
+  redisHost: redis
+  redisPort: "6379"
+  kafkaBrokers: "kafka:29092"
+  elasticsearchNode: "http://elasticsearch:9200"
+
+secrets:
+  jwtSecret: ""
+  authDatabaseUrl: ""
+  userDatabaseUrl: ""
+  taskDatabaseUrl: ""
+  notificationDatabaseUrl: ""

@@ -2,9 +2,12 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskQueueService } from '../queue/task-queue.service';
+import { KafkaProducerService } from '../kafka/kafka-producer.service';
 import { CreateTaskDto, TaskStatus } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
@@ -13,6 +16,8 @@ export class TasksService {
   constructor(
     private prisma: PrismaService,
     private taskQueue: TaskQueueService,
+    private kafkaProducer: KafkaProducerService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   /**
@@ -26,8 +31,14 @@ export class TasksService {
       },
     });
 
-    // Publish task.created job to BullMQ
+    // BullMQ: retry queue for notification delivery
     await this.taskQueue.publishTaskCreated(userId, task.id, task.title);
+
+    // Kafka: event stream for downstream consumers (search, analytics, etc.)
+    await this.kafkaProducer.emitTaskCreated({ userId, taskId: task.id, title: task.title });
+
+    // Invalidate user task list cache after creation
+    await this.cacheManager.del(`tasks:user:${userId}`);
 
     return task;
   }
@@ -41,6 +52,15 @@ export class TasksService {
     page: number = 1,
     limit: number = 10,
   ) {
+    // Only cache unfiltered first-page requests to avoid cache explosion
+    const cacheKey = `tasks:user:${userId}`;
+    if (!status && page === 1 && limit === 10) {
+      const cached = await this.cacheManager.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const skip = (page - 1) * limit;
 
     const where: any = { userId };
@@ -58,7 +78,7 @@ export class TasksService {
       this.prisma.task.count({ where }),
     ]);
 
-    return {
+    const result = {
       data: tasks,
       meta: {
         page,
@@ -67,6 +87,13 @@ export class TasksService {
         totalPages: Math.ceil(total / limit),
       },
     };
+
+    // Populate cache for default list request
+    if (!status && page === 1 && limit === 10) {
+      await this.cacheManager.set(cacheKey, result, 30000);
+    }
+
+    return result;
   }
 
   /**
@@ -104,7 +131,7 @@ export class TasksService {
       data: updateTaskDto,
     });
 
-    // Publish task.completed job if status changed to COMPLETED
+    // BullMQ: queue job for completion notification
     if (!wasCompleted && isNowCompleted) {
       await this.taskQueue.publishTaskCompleted(
         userId,
@@ -112,6 +139,17 @@ export class TasksService {
         updatedTask.title,
       );
     }
+
+    // Kafka: always emit update event for downstream consumers
+    await this.kafkaProducer.emitTaskUpdated({
+      userId,
+      taskId: updatedTask.id,
+      title: updatedTask.title,
+      status: updatedTask.status,
+    });
+
+    // Invalidate user task list cache after update
+    await this.cacheManager.del(`tasks:user:${userId}`);
 
     return updatedTask;
   }
@@ -125,6 +163,12 @@ export class TasksService {
     await this.prisma.task.delete({
       where: { id },
     });
+
+    // Kafka: emit delete event for downstream consumers
+    await this.kafkaProducer.emitTaskDeleted({ userId, taskId: id });
+
+    // Invalidate user task list cache after deletion
+    await this.cacheManager.del(`tasks:user:${userId}`);
 
     return {
       message: 'Task deleted successfully',

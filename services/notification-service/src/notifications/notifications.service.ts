@@ -9,12 +9,14 @@ import {
   CreateNotificationDto,
   NotificationChannel,
 } from './dto/create-notification.dto';
+import { NotificationsGateway } from '../realtime/notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private notificationsGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -31,6 +33,8 @@ export class NotificationsService {
       // In production, you'd query the Auth Service or have email in DTO
       console.log('📧 Email notification triggered:', notification.id);
     }
+
+    this.pushRealtime(notification.userId, notification);
 
     return notification;
   }
@@ -73,6 +77,30 @@ export class NotificationsService {
   }
 
   /**
+   * Create notification from a Kafka event (internal, no auth required)
+   */
+  async createFromKafkaEvent(data: {
+    userId: string;
+    type: string;
+    title: string;
+    message: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const notification = await this.prisma.notification.create({
+      data: {
+        userId: data.userId,
+        subject: data.title,
+        message: data.message,
+        channel: NotificationChannel.IN_APP,
+      },
+    });
+
+    this.pushRealtime(notification.userId, notification);
+
+    return notification;
+  }
+
+  /**
    * Delete notification
    */
   async remove(id: string, userId: string) {
@@ -95,5 +123,21 @@ export class NotificationsService {
     return {
       message: 'Notification deleted successfully',
     };
+  }
+
+  private pushRealtime(
+    userId: string,
+    notification: {
+      id: string;
+      userId: string;
+      type: string;
+      channel: string;
+      subject: string | null;
+      message: string;
+      read: boolean;
+      createdAt: Date;
+    },
+  ) {
+    this.notificationsGateway.emitToUser(userId, notification);
   }
 }

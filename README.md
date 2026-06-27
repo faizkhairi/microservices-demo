@@ -10,40 +10,47 @@ Built by [Faiz Khairi](https://github.com/faizkhairi) to showcase scalable syste
 
 ## 🏗️ Architecture
 
-**7-Service Microservices Platform:**
+**8-Service Microservices Platform:**
 
 ```
 Frontend (Nuxt 4)
        ↓
-API Gateway (NestJS) — Routing, Auth, Rate Limiting
+API Gateway (NestJS) — Routing, Auth, Rate Limiting, Circuit Breaker
        ↓
-    ┌──┴──┬──────┬──────────┬──────────┐
-    ↓     ↓      ↓          ↓          ↓
-  Auth  User   Task   Notification  Queue Worker
-  :4001 :4002  :4003     :4004      (Background)
-    ↓     ↓      ↓          ↓
-  Auth  User   Task   Notification
-   DB    DB     DB         DB
+    ┌──┴──┬──────┬──────────┬──────────┬──────────┐
+    ↓     ↓      ↓          ↓          ↓          ↓
+  Auth  User   Task   Notification  Search   Queue Worker
+  :4001 :4002  :4003     :4004      :4005    (Background)
+    ↓     ↓      ↓    ↑ Kafka ↑       ↑
+  Auth  User   Task   ──────────────────
+   DB    DB     DB    Kafka Event Bus
+                    (task.created / updated / deleted)
 ```
 
 ### Services
 
 | Service | Port | Responsibility |
 |---------|------|----------------|
-| **Frontend** | 3000 | Nuxt 4 web app with Shadcn-vue |
-| **API Gateway** | 4000 | Single entry point, JWT validation, rate limiting |
+| **API Gateway** | 4000 | Entry point, JWT validation, rate limiting, circuit breaker |
 | **Auth Service** | 4001 | JWT authentication, refresh tokens, bcrypt password hashing |
-| **User Service** | 4002 | User profiles and account management |
-| **Task Service** | 4003 | Task CRUD + BullMQ job publishing |
-| **Notification Service** | 4004 | Email + in-app notifications |
-| **Queue Worker** | — | Background job processing with BullMQ |
+| **User Service** | 4002 | User profiles with Redis cache-aside (60s TTL) |
+| **Task Service** | 4003 | Task CRUD + BullMQ queue + Kafka event publishing |
+| **Notification Service** | 4004 | Email + in-app notifications, Kafka consumer, **WebSocket push** (Socket.IO) |
+| **Search Service** | 4005 | Elasticsearch full-text search (Kafka consumer) |
+| **Queue Worker** | — | BullMQ background job processor |
 
 ### Infrastructure
 
-- **4 PostgreSQL databases** (one per service — microservices pattern)
-- **Redis** for message queue (BullMQ)
-- **Mailpit** for email testing (dev)
-- **Docker Compose** orchestrating 12 containers
+| Component | Purpose |
+|-----------|---------|
+| **4x PostgreSQL 16** | One database per service (microservices pattern) |
+| **Redis 7** | BullMQ job queue + cache-aside reads |
+| **Kafka + Zookeeper** | Event streaming bus (`task.events` topic) |
+| **Elasticsearch 8** | Full-text search index, synced via Kafka |
+| **Prometheus + Grafana** | Metrics scraping and dashboards |
+| **Mailpit** | Email testing in development |
+| **Docker Compose** | Orchestrating 17 containers |
+| **Kubernetes manifests** | Production deployment (`k8s/` + Helm chart) |
 
 ---
 
@@ -192,6 +199,7 @@ npm run test:e2e
 ### Message-Driven Architecture
 - ✅ **BullMQ + Redis** — Async job processing
 - ✅ **Event-driven** — Task creation triggers notification job
+- ✅ **Real-time notifications** — Socket.IO WebSocket gateway pushes in-app alerts on Kafka events
 - ✅ **Decoupled services** — Task Service doesn't directly call Notification Service
 
 ### Security
@@ -276,8 +284,24 @@ kubectl apply -f k8s/
    ↓
 6. Notification Service:
    - Saves notification to notification_db
-   - Sends email via Mailpit
+   - Publishes live update via Socket.IO (`/notifications` namespace)
+   - Sends email via Mailpit (when email channel is used)
 ```
+
+### Real-time notification stream
+```
+1. Frontend opens Socket.IO connection to Notification Service
+   - Namespace: /notifications
+   - Auth: JWT in handshake auth.token
+   ↓
+2. Server joins socket to room user:{userId}
+   ↓
+3. When Kafka emits task.created / task.updated / task.deleted
+   - Notification Service persists in-app notification
+   - Same payload is pushed to connected clients in that user room
+```
+
+Try it locally with `examples/websocket-client.html`.
 
 ---
 

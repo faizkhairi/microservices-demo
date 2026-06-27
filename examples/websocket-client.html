@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notification WebSocket Demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 720px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      label {
+        display: block;
+        margin-top: 1rem;
+        font-weight: 600;
+      }
+      input,
+      button,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 0.35rem;
+        padding: 0.6rem 0.75rem;
+      }
+      button {
+        width: auto;
+        cursor: pointer;
+      }
+      #status {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        background: #f4f4f5;
+      }
+      #feed {
+        margin-top: 1rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .card {
+        border: 1px solid #e4e4e7;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        background: #fff;
+      }
+      .meta {
+        color: #71717a;
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Notification WebSocket Demo</h1>
+    <p>
+      Connect to the notification service Socket.IO namespace, then create or
+      update a task to receive live in-app notifications from Kafka events.
+    </p>
+
+    <label for="url">Socket.IO URL</label>
+    <input id="url" value="http://localhost:4004/notifications" />
+
+    <label for="token">JWT access token</label>
+    <textarea id="token" rows="4" placeholder="Paste JWT from auth-service login"></textarea>
+
+    <button id="connect">Connect</button>
+    <button id="disconnect" disabled>Disconnect</button>
+
+    <div id="status">Disconnected</div>
+    <div id="feed"></div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+      let socket;
+
+      const statusEl = document.getElementById('status');
+      const feedEl = document.getElementById('feed');
+      const connectBtn = document.getElementById('connect');
+      const disconnectBtn = document.getElementById('disconnect');
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function addCard(title, payload) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <strong>${title}</strong>
+          <div class="meta">${new Date().toLocaleString()}</div>
+          <pre>${JSON.stringify(payload, null, 2)}</pre>
+        `;
+        feedEl.prepend(card);
+      }
+
+      connectBtn.addEventListener('click', () => {
+        const url = document.getElementById('url').value.trim();
+        const token = document.getElementById('token').value.trim();
+
+        if (!token) {
+          setStatus('JWT token is required');
+          return;
+        }
+
+        if (socket) {
+          socket.disconnect();
+        }
+
+        socket = io(url, {
+          transports: ['websocket'],
+          auth: { token },
+        });
+
+        socket.on('connect', () => setStatus(`Connected: ${socket.id}`));
+        socket.on('disconnect', () => {
+          setStatus('Disconnected');
+          connectBtn.disabled = false;
+          disconnectBtn.disabled = true;
+        });
+        socket.on('connected', (payload) => addCard('connected', payload));
+        socket.on('notification', (payload) => addCard('notification', payload));
+        socket.on('connect_error', (error) => setStatus(`Connection error: ${error.message}`));
+
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+      });
+
+      disconnectBtn.addEventListener('click', () => {
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+      });
+    </script>
+  </body>
+</html>

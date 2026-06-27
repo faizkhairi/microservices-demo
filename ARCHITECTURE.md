@@ -821,7 +821,7 @@ docker compose up
 2. **Event Sourcing** — Audit trail with event store (EventStoreDB)
 3. **CQRS** — Separate read/write models for tasks
 4. **Service Mesh** — Istio for advanced traffic management
-5. **Real-time Updates** — WebSockets for live notifications
+5. **Real-time Updates** — WebSockets for live notifications ✅ (`Socket.IO` gateway on Notification Service)
 6. **Admin Dashboard** — Separate admin UI for user/task management
 7. **Multi-Tenancy** — Tenant isolation at database level
 8. **Advanced RBAC** — Fine-grained permissions (Casbin or OPA)

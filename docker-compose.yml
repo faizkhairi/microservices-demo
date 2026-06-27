@@ -74,6 +74,67 @@ services:
       retries: 5
 
   # ============================================
+  # KAFKA (Event Streaming)
+  # ============================================
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ============================================
+  # ELASTICSEARCH (Search)
+  # ============================================
+
+  elasticsearch:
+    image: elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ============================================
   # REDIS (Message Queue)
   # ============================================
 
@@ -118,6 +179,7 @@ services:
       USER_SERVICE_URL: http://user-service:4002
       TASK_SERVICE_URL: http://task-service:4003
       NOTIFICATION_SERVICE_URL: http://notification-service:4004
+      SEARCH_SERVICE_URL: http://search-service:4005
       CORS_ORIGIN: http://localhost:3000
     ports:
       - "4000:4000"
@@ -126,6 +188,7 @@ services:
       - user-service
       - task-service
       - notification-service
+      - search-service
 
   auth-service:
     build:
@@ -153,10 +216,14 @@ services:
       USER_SERVICE_PORT: 4002
       DATABASE_URL: postgresql://postgres:postgres@user-db:5432/user_db
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production-min-32-chars}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "4002:4002"
     depends_on:
       user-db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   task-service:
@@ -170,12 +237,15 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production-min-32-chars}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:29092
     ports:
       - "4003:4003"
     depends_on:
       task-db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
 
   notification-service:
@@ -190,6 +260,7 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SMTP_FROM: noreply@microservices-demo.local
+      KAFKA_BROKERS: kafka:29092
     ports:
       - "4004:4004"
     depends_on:
@@ -197,6 +268,25 @@ services:
         condition: service_healthy
       mailpit:
         condition: service_started
+      kafka:
+        condition: service_healthy
+
+  search-service:
+    build:
+      context: ./services/search-service
+      dockerfile: Dockerfile
+    container_name: search-service
+    environment:
+      SEARCH_SERVICE_PORT: 4005
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      KAFKA_BROKERS: kafka:29092
+    ports:
+      - "4005:4005"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   queue-worker:
     build:
@@ -213,6 +303,35 @@ services:
       notification-service:
         condition: service_started
 
+  # ============================================
+  # OBSERVABILITY
+  # ============================================
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
 # ============================================
 # VOLUMES
 # ============================================
@@ -222,3 +341,5 @@ volumes:
   user-db-data:
   task-db-data:
   notification-db-data:
+  elasticsearch-data:
+  grafana-data:

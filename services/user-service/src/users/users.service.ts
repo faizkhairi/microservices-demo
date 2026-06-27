@@ -2,27 +2,44 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   /**
    * Get user profile by userId
    */
   async findOne(userId: string) {
+    const cacheKey = `user:${userId}`;
+
+    // Check cache first
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const profile = await this.prisma.userProfile.findUnique({
       where: { userId },
     });
 
     if (!profile) {
       // Auto-create profile if doesn't exist (first-time user)
-      return this.createProfile(userId);
+      const created = await this.createProfile(userId);
+      await this.cacheManager.set(cacheKey, created, 60000);
+      return created;
     }
 
+    // Populate cache on miss
+    await this.cacheManager.set(cacheKey, profile, 60000);
     return profile;
   }
 
@@ -46,10 +63,15 @@ export class UsersService {
     }
 
     // Update profile
-    return this.prisma.userProfile.update({
+    const updated = await this.prisma.userProfile.update({
       where: { userId },
       data: updateUserDto,
     });
+
+    // Invalidate cache after update
+    await this.cacheManager.del(`user:${userId}`);
+
+    return updated;
   }
 
   /**
@@ -98,6 +120,9 @@ export class UsersService {
     await this.prisma.userProfile.delete({
       where: { userId },
     });
+
+    // Invalidate cache after deletion
+    await this.cacheManager.del(`user:${userId}`);
 
     return {
       message: 'Profile deleted successfully',

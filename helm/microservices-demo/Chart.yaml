@@ -1,0 +1,14 @@
+apiVersion: v2
+name: microservices-demo
+description: NestJS microservices demo with Kafka, Redis, Elasticsearch, and observability
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - nestjs
+  - microservices
+  - kafka
+  - elasticsearch
+home: https://github.com/faizkhairi/microservices-demo
+maintainers:
+  - name: Faiz Khairi
